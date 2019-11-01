@@ -7,55 +7,97 @@ import 'dart:ffi';
 import 'package:flutter/material.dart';
 
 void main() {
-  runApp(MaterialApp(title: 'Flutter Tutorial', home: Counter()));
+  runApp(MaterialApp(
+      title: 'Flutter Tutorial',
+      home: ShoppingList(
+        products: <Product>[
+          Product(name: 'Eggs'),
+          Product(name: 'Flour'),
+          Product(name: 'Chocolate chips')
+        ],
+      )));
 }
 
-class Counter extends StatefulWidget {
+class ShoppingList extends StatefulWidget {
+  ShoppingList({Key key, this.products}) : super(key: key);
+
+  final List<Product> products;
+
   @override
-  _CounterState createState() => _CounterState();
+  _ShoppingListState createState() => _ShoppingListState();
 }
 
-class _CounterState extends State<Counter> {
-  int _counter = 0;
+class _ShoppingListState extends State<ShoppingList> {
+  Set<Product> _shoppingCart = Set<Product>();
 
-  void _increment() {
+  void _handleCartChanged(Product product, bool inCart) {
     setState(() {
-      ++_counter;
+      if (!inCart)
+        _shoppingCart.add(product);
+      else
+        _shoppingCart.remove(product);
     });
   }
 
   @override
   Widget build(BuildContext context) {
-    return Row(
-      children: <Widget>[
-        CounterIncrementor(onPressed: _increment),
-        CounterDisplay(count: _counter),
-      ],
+    return Scaffold(
+      appBar: AppBar(
+        title: Text('Shopping List'),
+      ),
+      body: ListView(
+        padding: EdgeInsets.symmetric(vertical: 8.0),
+        children: widget.products.map((Product product) {
+          return ShoppingListItem(
+            product: product,
+            inCart: _shoppingCart.contains(product),
+            onCartChanged: _handleCartChanged,
+          );
+        }).toList(),
+      ),
     );
   }
 }
 
-class CounterDisplay extends StatelessWidget {
-  CounterDisplay({this.count});
-
-  final int count;
-
-  @override
-  Widget build(BuildContext context) {
-    return Text('Count:$count');
-  }
+class Product {
+  const Product({this.name});
+  final String name;
 }
 
-class CounterIncrementor extends StatelessWidget {
-  CounterIncrementor({this.onPressed});
+typedef void CartChangedCallback(Product product, bool inCart);
 
-  final VoidCallback onPressed;
+class ShoppingListItem extends StatelessWidget {
+  ShoppingListItem({Product product, this.inCart, this.onCartChanged})
+      : product = product,
+        super(key: ObjectKey(product));
+
+  final Product product;
+  final bool inCart;
+  final CartChangedCallback onCartChanged;
+
+  Color _getColor(BuildContext context) {
+    return inCart ? Colors.black54 : Theme.of(context).primaryColor;
+  }
+
+  TextStyle _getTextStyle(BuildContext context) {
+    if (!inCart) return null;
+    return TextStyle(
+      color: Colors.black54,
+      decoration: TextDecoration.lineThrough,
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
-    return RaisedButton(
-      onPressed: onPressed,
-      child: Text('Increment'),
+    return ListTile(
+      onTap: () {
+        onCartChanged(product, inCart);
+      },
+      leading: CircleAvatar(
+        backgroundColor: _getColor(context),
+        child: Text(product.name[0]),
+      ),
+      title: Text(product.name, style: _getTextStyle(context)),
     );
   }
 }
